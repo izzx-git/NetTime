@@ -1,0 +1,1310 @@
+# file opened: main.asm
+   1  0000              ;NetTime (izzx)
+   2  0000              ;Утилита синхронизации времени с инетом
+   3  0000                  device ZXSPECTRUM48
+   4  0000              	org #8000
+   5  8000              origin
+   6  8000 C3 07 80     	jp start
+   7  8003 00 00 00 00  UTC ds 4 ;переменная
+   8  8007              start
+   9  8007 AF           	xor a
+  10  8008 32 8C 5C     	ld (23692),a ;отложить запрос на сролл экрана
+  11  800B
+  12  800B CD F5 84     	call Uart.init ;инициализация карты
+  13  800E
+  14  800E CD 4C 84     	call read_buf ;принять ответ
+  15  8011 21 00 90     	ld hl,buffer
+  16  8014 CD 71 84     	call print_mes ;печать ответа
+  17  8017
+  18  8017              	; ld b,cmd_ate0_e-cmd_ate0 ;отключить эхо
+  19  8017              	; ld hl,cmd_ate0
+  20  8017              	; call write_cmd
+  21  8017
+  22  8017              	; call read_buf
+  23  8017              	;ld hl,buffer
+  24  8017              	;call print_mes
+  25  8017              ;
+  26  8017 06 03        	ld b,cmd_break_e-cmd_break ;прервать обмен, если был
+  27  8019 21 B0 85     	ld hl,cmd_break
+  28  801C CD 67 84     	call write_cmd
+  29  801F
+  30  801F CD 4C 84     	call read_buf
+  31  8022 21 00 90     	ld hl,buffer
+  32  8025 CD 71 84     	call print_mes
+  33  8028 3E 0D        	ld a,13
+  34  802A D7           	rst 16
+  35  802B              ;
+  36  802B 06 0D        	ld b,cmd_ipclose_e-cmd_ipclose ;закрыть соединение, если было
+  37  802D 21 C0 85     	ld hl,cmd_ipclose
+  38  8030 CD 67 84     	call write_cmd
+  39  8033
+  40  8033 CD 4C 84     	call read_buf
+  41  8036 21 00 90     	ld hl,buffer
+  42  8039 CD 71 84     	call print_mes
+  43  803C 3E 0D        	ld a,13
+  44  803E D7           	rst 16
+  45  803F              ;
+  46  803F              	; ld b,cmd_savetrans0_e-cmd_savetrans0 ;установить прямое соединение
+  47  803F              	; ld hl,cmd_savetrans0
+  48  803F              	; call write_cmd
+  49  803F
+  50  803F              	; call read_buf
+  51  803F              	;ld hl,buffer
+  52  803F              	;call print_mes
+  53  803F              ; ;
+  54  803F              	; ld b,cmd_cwjap_e-cmd_cwjap ;задать точку доступа
+  55  803F              	; ld hl,cmd_cwjap
+  56  803F              	; call write_cmd
+  57  803F
+  58  803F              	; call read_buf
+  59  803F              	;ld hl,buffer
+  60  803F              	;call print_mes
+  61  803F              ;
+  62  803F              	; ld b,cmd_ipmux_e-cmd_ipmux ;режим обмена одно соединение
+  63  803F              	; ld hl,cmd_ipmux
+  64  803F              	; call write_cmd
+  65  803F
+  66  803F              	; call read_buf
+  67  803F              	;ld hl,buffer
+  68  803F              	;call print_mes
+  69  803F              ;
+  70  803F 06 2A        	ld b,cmd_ipstart_e-cmd_ipstart ;установить соединение
+  71  8041 21 CD 85     	ld hl,cmd_ipstart
+  72  8044 CD 67 84     	call write_cmd
+  73  8047
+  74  8047 CD 4C 84     	call read_buf
+  75  804A 21 00 90     	ld hl,buffer
+  76  804D CD 71 84     	call print_mes
+  77  8050 3E 0D        	ld a,13
+  78  8052 D7           	rst 16
+  79  8053              ;
+  80  8053              	; ld b,cmd_savetrans_e-cmd_savetrans
+  81  8053              	; ld hl,cmd_savetrans
+  82  8053              	; call write_cmd
+  83  8053
+  84  8053              	; call read_buf
+  85  8053              	;ld hl,buffer
+  86  8053              	;call print_mes
+  87  8053              ;
+  88  8053 06 0F        	ld b,cmd_ipsend_e-cmd_ipsend ;задать размер пакета
+  89  8055 21 F7 85     	ld hl,cmd_ipsend
+  90  8058 CD 67 84     	call write_cmd
+  91  805B
+  92  805B CD 4C 84     	call read_buf
+  93  805E 21 00 90     	ld hl,buffer
+  94  8061 CD 71 84     	call print_mes
+  95  8064              	; ld a,13
+  96  8064              	; rst 16
+  97  8064              ;
+  98  8064              	;печать времени клиента
+  99  8064 21 B7 86     	ld hl,mes_client_RTS
+ 100  8067 CD 71 84     	call print_mes
+ 101  806A CD D9 83     	call print_client_time
+ 102  806D D8           	ret c
+ 103  806E
+ 104  806E              	;запрос на сервер
+ 105  806E 06 30        	ld b,cmd_req_e-cmd_req ;отправить пакет
+ 106  8070 21 4B 86     	ld hl,cmd_req
+ 107  8073 CD 67 84     	call write_cmd
+ 108  8076
+ 109  8076 CD 4C 84     	call read_buf
+ 110  8079              	;ld hl,buffer
+ 111  8079              	;call print_mes
+ 112  8079
+ 113  8079              	;проверка пакета
+ 114  8079 21 00 90     	ld hl,buffer
+ 115  807C 11 7B 86     	ld de,pack_id
+ 116  807F 06 00        	ld b,0 ;ограничение на поиск
+ 117  8081 DD 2E 08     	ld ixl,pack_id_e-pack_id ;символов для сравнения
+ 118  8084              compar1
+ 119  8084 1A           	ld a,(de)
+ 120  8085 BE           	cp (hl)
+ 121  8086 28 08        	jr z,compar2
+ 122  8088 DD 2E 08     	ld ixl,pack_id_e-pack_id
+ 123  808B 23           	inc hl
+ 124  808C 10 F6        	djnz compar1
+ 125  808E 18 08        	jr compar_no
+ 126  8090              compar2
+ 127  8090 13           	inc de
+ 128  8091 23           	inc hl
+ 129  8092 DD 2D        	dec ixl
+ 130  8094 20 EE        	jr nz,compar1
+ 131  8096 18 07        	jr compar_ok
+ 132  8098              compar_no ;не нашли
+ 133  8098 21 99 86     	ld hl,mes_no_answer
+ 134  809B CD 71 84     	call print_mes
+ 135  809E C9           	ret ;выход
+ 136  809F              compar_ok
+ 137  809F              	;в hl указатель на начало ответного пакета
+ 138  809F 22 83 86     	ld (pack_answer),hl
+ 139  80A2
+ 140  80A2              ;
+ 141  80A2 CD DC 80     	call calc_server_time
+ 142  80A5 CD 8A 83     	call set_client_time
+ 143  80A8 D8           	ret c
+ 144  80A9              ;
+ 145  80A9 06 0D        	ld b,cmd_ipclose_e-cmd_ipclose ;закрыть соединение
+ 146  80AB 21 C0 85     	ld hl,cmd_ipclose
+ 147  80AE CD 67 84     	call write_cmd
+ 148  80B1
+ 149  80B1 CD 4C 84     	call read_buf
+ 150  80B4 21 00 90     	ld hl,buffer
+ 151  80B7 CD 71 84     	call print_mes
+ 152  80BA              ;финал
+ 153  80BA 21 E9 86     	ld hl,mes_press_key
+ 154  80BD CD 71 84     	call print_mes
+ 155  80C0              	;печать в цикле текущего времени
+ 156  80C0              end_loop
+ 157  80C0 21 D5 86     	ld hl,mes_curent_RTS
+ 158  80C3 CD 71 84     	call print_mes
+ 159  80C6 CD D9 83     	call print_client_time
+ 160  80C9 D8           	ret c
+ 161  80CA 76           	halt
+ 162  80CB 3A 04 5C     	ld a,(23556) ;нажатая клавиша
+ 163  80CE FE FF        	cp 255
+ 164  80D0 28 EE        	jr z,end_loop
+ 165  80D2 F3           	di
+ 166  80D3 AF           	xor a
+ 167  80D4 01 FD 7F     	ld bc,#7ffd
+ 168  80D7 ED 79        	out (c),a ;128 бейсик
+ 169  80D9 C3 00 00     	jp 0 ;выход
+ 170  80DC
+ 171  80DC
+ 172  80DC
+ 173  80DC              calc_server_time
+ 174  80DC              	;обработка времени, полученного с сервера
+ 175  80DC 21 C6 86     	ld hl,mes_server_RTS
+ 176  80DF CD 71 84     	call print_mes
+ 177  80E2
+ 178  80E2 21 6C 07     	ld hl,1900 ;начнём отсчёт с 01.01.1900
+ 179  80E5 22 02 87     	ld (cur_year),hl
+ 180  80E8 21 01 00     	ld hl,1
+ 181  80EB 22 04 87     	ld (cur_month),hl
+ 182  80EE 22 06 87     	ld (cur_day),hl
+ 183  80F1 21 00 00     	ld hl,0
+ 184  80F4 22 08 87     	ld (cur_hour),hl
+ 185  80F7 22 0A 87     	ld (cur_minute),hl
+ 186  80FA 22 0C 87     	ld (cur_second),hl
+ 187  80FD 2A 83 86     	ld hl,(pack_answer)
+ 188  8100 01 28 00     	ld bc,40
+ 189  8103 09           	add hl,bc ;указатель на значении Transmit
+ 190  8104
+ 191  8104 46           	ld b,(hl) ;старшие 2 байта будут в IX
+ 192  8105 23           	inc hl
+ 193  8106 4E           	ld c,(hl)
+ 194  8107 23           	inc hl
+ 195  8108 C5           	push bc
+ 196  8109 DD E1        	pop ix
+ 197  810B              	;ld (server_t_h),ix
+ 198  810B 56           	ld d,(hl) ;младшие 2 будут в HL
+ 199  810C 23           	inc hl
+ 200  810D 5E           	ld e,(hl)
+ 201  810E EB           	ex de,hl
+ 202  810F              	;ld (server_t_l),hl
+ 203  810F
+ 204  810F              	;прибавляем или вычитаем часовой пояс
+ 205  810F ED 5B 04 80  	ld de,(UTC+1) ;utc старшие байты
+ 206  8113 16 00        	ld d,0
+ 207  8115 3A 05 80     	ld a,(UTC+2) ;utc младшие байты
+ 208  8118 47           	ld b,a
+ 209  8119 3A 06 80     	ld a,(UTC+3)
+ 210  811C 4F           	ld c,a
+ 211  811D 3A 03 80     	ld a,(UTC)
+ 212  8120 FE 2B        	cp "+"
+ 213  8122 28 3C        	jr z,calc_utc_plus
+ 214  8124              calc_utc_minus ;вычитаем utc
+ 215  8124 D9           	exx
+ 216  8125 11 00 00     	ld de,0 ;фикс IX подготовить
+ 217  8128 D9           	exx
+ 218  8129 A7           	and a
+ 219  812A ED 42        	sbc hl,bc ;вычтем UTC младшие два байта
+ 220  812C 30 1C        	jr nc,calc_utc3
+ 221  812E C5           	push bc
+ 222  812F E5           	push hl
+ 223  8130 DD E5        	push ix
+ 224  8132 E1           	pop hl
+ 225  8133 01 01 00     	ld bc,1
+ 226  8136 D9           	exx
+ 227  8137 11 01 00     	ld de,1 ;фикс IX запомнить
+ 228  813A D9           	exx
+ 229  813B A7           	and a
+ 230  813C ED 42        	sbc hl,bc
+ 231  813E E5           	push hl
+ 232  813F DD E1        	pop ix
+ 233  8141 E1           	pop hl
+ 234  8142 C1           	pop bc
+ 235  8143 30 05        	jr nc,calc_utc3
+ 236  8145 DD 23        	inc ix ;на шаг назад если не хватило
+ 237  8147 09           	add hl,bc
+ 238  8148 18 1D        	jr calc_year ;выход
+ 239  814A              calc_utc3
+ 240  814A A7           	and a
+ 241  814B E5           	push hl ;рокировка регистров
+ 242  814C DD E5        	push ix
+ 243  814E E1           	pop hl
+ 244  814F ED 52        	sbc hl,de ;вычтем utc старшие два байта
+ 245  8151 E5           	push hl
+ 246  8152 DD E1        	pop ix
+ 247  8154 E1           	pop hl
+ 248  8155 30 10        	jr nc,calc_year
+ 249  8157              	;на шаг назад
+ 250  8157 DD 19        	add ix,de
+ 251  8159 D9           	exx
+ 252  815A DD 19        	add ix,de ;фикс IX вспомнить
+ 253  815C D9           	exx
+ 254  815D 09           	add hl,bc
+ 255  815E 18 07        	jr calc_year
+ 256  8160
+ 257  8160              calc_utc_plus ;прибавляем utc
+ 258  8160 09           	add hl,bc
+ 259  8161 30 02        	jr nc,calc_utc_plus1
+ 260  8163 DD 23        	inc ix
+ 261  8165              calc_utc_plus1
+ 262  8165 DD 19        	add ix,de
+ 263  8167
+ 264  8167
+ 265  8167              	;вычисление года
+ 266  8167              calc_year
+ 267  8167 D9           	exx
+ 268  8168 11 00 00     	ld de,0 ;фикс IX подготовить
+ 269  816B D9           	exx
+ 270  816C E5           	push hl
+ 271  816D CD DA 84     	call check_year_leap ;високосный?
+ 272  8170 E1           	pop hl
+ 273  8171 30 0A        	jr nc,calc_year1
+ 274  8173 ED 5B 12 87  	ld de,(year_leap_h) ;год в секундах високосный
+ 275  8177 ED 4B 14 87  	ld bc,(year_leap_l)
+ 276  817B 18 08        	jr calc_year2
+ 277  817D              calc_year1
+ 278  817D ED 5B 0E 87  	ld de,(year_h) ;год в секундах обычный
+ 279  8181 ED 4B 10 87  	ld bc,(year_l)
+ 280  8185              calc_year2
+ 281  8185 A7           	and a
+ 282  8186 ED 42        	sbc hl,bc ;вычтем год младшие два байта
+ 283  8188 30 1C        	jr nc,calc_year3
+ 284  818A C5           	push bc
+ 285  818B E5           	push hl
+ 286  818C DD E5        	push ix
+ 287  818E E1           	pop hl
+ 288  818F 01 01 00     	ld bc,1
+ 289  8192 D9           	exx
+ 290  8193 11 01 00     	ld de,1 ;фикс IX запомнить
+ 291  8196 D9           	exx
+ 292  8197 A7           	and a
+ 293  8198 ED 42        	sbc hl,bc
+ 294  819A E5           	push hl
+ 295  819B DD E1        	pop ix
+ 296  819D E1           	pop hl
+ 297  819E C1           	pop bc
+ 298  819F 30 05        	jr nc,calc_year3
+ 299  81A1 DD 23        	inc ix ;на шаг назад если не хватило
+ 300  81A3 09           	add hl,bc
+ 301  81A4 18 21        	jr calc_year_ex ;выход из цикла
+ 302  81A6              calc_year3
+ 303  81A6 A7           	and a
+ 304  81A7 E5           	push hl ;рокировка регистров
+ 305  81A8 DD E5        	push ix
+ 306  81AA E1           	pop hl
+ 307  81AB ED 52        	sbc hl,de ;вычтем год старшие два байта
+ 308  81AD E5           	push hl
+ 309  81AE DD E1        	pop ix
+ 310  81B0 E1           	pop hl
+ 311  81B1 30 09        	jr nc,calc_year3h
+ 312  81B3              	;на шаг назад
+ 313  81B3 DD 19        	add ix,de
+ 314  81B5 D9           	exx
+ 315  81B6 DD 19        	add ix,de ;фикс IX вспомнить
+ 316  81B8 D9           	exx
+ 317  81B9 09           	add hl,bc
+ 318  81BA 18 0B        	jr calc_year_ex ;выход из цикла
+ 319  81BC              calc_year3h
+ 320  81BC              	;прибавляем год к переменной
+ 321  81BC E5           	push hl
+ 322  81BD 2A 02 87     	ld hl,(cur_year)
+ 323  81C0 23           	inc hl
+ 324  81C1 22 02 87     	ld (cur_year),hl
+ 325  81C4 E1           	pop hl
+ 326  81C5 18 A0        	jr calc_year ;цикл
+ 327  81C7              calc_year_ex
+ 328  81C7
+ 329  81C7              	;печать года
+ 330  81C7 E5           	push hl
+ 331  81C8 2A 02 87     	ld hl,(cur_year)
+ 332  81CB CD 7E 84     	call toDecimal
+ 333  81CE 21 D7 84     	ld hl,decimalS+3
+ 334  81D1 CD 71 84     	call print_mes
+ 335  81D4 E1           	pop hl
+ 336  81D5
+ 337  81D5 3E 2E        	ld a,"."
+ 338  81D7 D7           	rst 16
+ 339  81D8
+ 340  81D8              	;вычисление месяца
+ 341  81D8 E5           	push hl
+ 342  81D9 CD DA 84     	call check_year_leap ;високосный?
+ 343  81DC              	;pop hl
+ 344  81DC 30 05        	jr nc,calc_month1
+ 345  81DE 21 40 87     	ld hl,month_leap ;месяцы в секундах високосные
+ 346  81E1 18 03        	jr calc_month2
+ 347  81E3              calc_month1
+ 348  81E3 21 1C 87     	ld hl,month ;месяцы в секундах обычные
+ 349  81E6              calc_month2
+ 350  81E6 22 1A 87     	ld (month_cur_tabl),hl ;сохранить указатель на месяц
+ 351  81E9 E1           	pop hl
+ 352  81EA              calc_month
+ 353  81EA D9           	exx
+ 354  81EB 11 00 00     	ld de,0 ;фикс IX подготовить
+ 355  81EE D9           	exx
+ 356  81EF E5           	push hl
+ 357  81F0 2A 1A 87     	ld hl,(month_cur_tabl)
+ 358  81F3 7E           	ld a,(hl)
+ 359  81F4 23           	inc hl
+ 360  81F5 46           	ld b,(hl) ;младшие байты
+ 361  81F6 23           	inc hl
+ 362  81F7 4E           	ld c,(hl)
+ 363  81F8 23           	inc hl
+ 364  81F9 22 1A 87     	ld (month_cur_tabl),hl ;сохранить указатель на месяц
+ 365  81FC 16 00        	ld d,0 ;старшие байты
+ 366  81FE 5F           	ld e,a
+ 367  81FF E1           	pop hl
+ 368  8200
+ 369  8200 A7           	and a
+ 370  8201 ED 42        	sbc hl,bc ;вычтем месяц младшие два байта
+ 371  8203 30 1C        	jr nc,calc_month3
+ 372  8205 C5           	push bc
+ 373  8206 E5           	push hl
+ 374  8207 DD E5        	push ix
+ 375  8209 E1           	pop hl
+ 376  820A 01 01 00     	ld bc,1
+ 377  820D D9           	exx
+ 378  820E 11 01 00     	ld de,1 ;фикс IX запомнить
+ 379  8211 D9           	exx
+ 380  8212 A7           	and a
+ 381  8213 ED 42        	sbc hl,bc
+ 382  8215 E5           	push hl
+ 383  8216 DD E1        	pop ix
+ 384  8218 E1           	pop hl
+ 385  8219 C1           	pop bc
+ 386  821A 30 05        	jr nc,calc_month3
+ 387  821C DD 23        	inc ix ;на шаг назад если не хватило
+ 388  821E 09           	add hl,bc
+ 389  821F 18 21        	jr calc_month_ex ;выход из цикла
+ 390  8221              calc_month3
+ 391  8221 A7           	and a
+ 392  8222 E5           	push hl ;рокировка регистров
+ 393  8223 DD E5        	push ix
+ 394  8225 E1           	pop hl
+ 395  8226 ED 52        	sbc hl,de ;вычтем месяц старшие два байта
+ 396  8228 E5           	push hl
+ 397  8229 DD E1        	pop ix
+ 398  822B E1           	pop hl
+ 399  822C 30 09        	jr nc,calc_month3h
+ 400  822E              	;на шаг назад
+ 401  822E DD 19        	add ix,de
+ 402  8230 D9           	exx
+ 403  8231 DD 19        	add ix,de ;фикс IX вспомнить
+ 404  8233 D9           	exx
+ 405  8234 09           	add hl,bc
+ 406  8235 18 0B        	jr calc_month_ex ;выход из цикла
+ 407  8237              calc_month3h
+ 408  8237              	;прибавляем месяц к переменной
+ 409  8237 E5           	push hl
+ 410  8238 2A 04 87     	ld hl,(cur_month)
+ 411  823B 23           	inc hl
+ 412  823C 22 04 87     	ld (cur_month),hl
+ 413  823F E1           	pop hl
+ 414  8240 18 A8        	jr calc_month ;цикл
+ 415  8242              calc_month_ex
+ 416  8242
+ 417  8242              	; ;коррекция месяца
+ 418  8242              	; push hl
+ 419  8242              	; ld hl,(cur_month)
+ 420  8242              	; ld a,l
+ 421  8242              	; cp 1
+ 422  8242              	; jr z,calc_month5
+ 423  8242              	; dec hl
+ 424  8242              	; ld (cur_month),hl
+ 425  8242              ; calc_month5
+ 426  8242
+ 427  8242              	;печать месяца
+ 428  8242 E5           	push hl
+ 429  8243 2A 04 87     	ld hl,(cur_month)
+ 430  8246 CD 7E 84     	call toDecimal
+ 431  8249 21 D7 84     	ld hl,decimalS+3
+ 432  824C CD 71 84     	call print_mes
+ 433  824F E1           	pop hl
+ 434  8250
+ 435  8250 3E 2E        	ld a,"."
+ 436  8252 D7           	rst 16
+ 437  8253
+ 438  8253              	;вычисление дня
+ 439  8253 3A 16 87     	ld a,(day_h)
+ 440  8256 5F           	ld e,a
+ 441  8257 16 00        	ld d,0
+ 442  8259 3A 19 87     	ld a,(day_l+1) ;младшие байты
+ 443  825C 47           	ld b,a
+ 444  825D 3A 18 87     	ld a,(day_l)
+ 445  8260 4F           	ld c,a
+ 446  8261              calc_day
+ 447  8261 D9           	exx
+ 448  8262 11 00 00     	ld de,0 ;фикс IX подготовить
+ 449  8265 D9           	exx
+ 450  8266 A7           	and a
+ 451  8267 ED 42        	sbc hl,bc ;вычтем день младшие два байта
+ 452  8269 30 1C        	jr nc,calc_day3
+ 453  826B C5           	push bc
+ 454  826C E5           	push hl
+ 455  826D DD E5        	push ix
+ 456  826F E1           	pop hl
+ 457  8270 01 01 00     	ld bc,1
+ 458  8273 D9           	exx
+ 459  8274 11 01 00     	ld de,1 ;фикс IX запомнить
+ 460  8277 D9           	exx
+ 461  8278 A7           	and a
+ 462  8279 ED 42        	sbc hl,bc
+ 463  827B E5           	push hl
+ 464  827C DD E1        	pop ix
+ 465  827E E1           	pop hl
+ 466  827F C1           	pop bc
+ 467  8280 30 05        	jr nc,calc_day3
+ 468  8282 DD 23        	inc ix ;на шаг назад если не хватило
+ 469  8284 09           	add hl,bc
+ 470  8285 18 21        	jr calc_day_ex ;выход из цикла
+ 471  8287              calc_day3
+ 472  8287 A7           	and a
+ 473  8288 E5           	push hl ;рокировка регистров
+ 474  8289 DD E5        	push ix
+ 475  828B E1           	pop hl
+ 476  828C ED 52        	sbc hl,de ;вычтем месяц старшие два байта
+ 477  828E E5           	push hl
+ 478  828F DD E1        	pop ix
+ 479  8291 E1           	pop hl
+ 480  8292 30 09        	jr nc,calc_day3h
+ 481  8294              	;на шаг назад
+ 482  8294 DD 19        	add ix,de
+ 483  8296 D9           	exx
+ 484  8297 DD 19        	add ix,de ;фикс IX вспомнить
+ 485  8299 D9           	exx
+ 486  829A 09           	add hl,bc
+ 487  829B 18 0B        	jr calc_day_ex ;выход из цикла
+ 488  829D              calc_day3h
+ 489  829D              	;прибавляем день к переменной
+ 490  829D E5           	push hl
+ 491  829E 2A 06 87     	ld hl,(cur_day)
+ 492  82A1 23           	inc hl
+ 493  82A2 22 06 87     	ld (cur_day),hl
+ 494  82A5 E1           	pop hl
+ 495  82A6 18 B9        	jr calc_day ;цикл
+ 496  82A8              calc_day_ex
+ 497  82A8
+ 498  82A8              	; ;коррекция дня
+ 499  82A8              	; push hl
+ 500  82A8              	; ld hl,(cur_day)
+ 501  82A8              	; ld a,l
+ 502  82A8              	; cp 1
+ 503  82A8              	; jr z,calc_day5
+ 504  82A8              	; inc hl
+ 505  82A8              	; ld (cur_day),hl
+ 506  82A8              ; calc_day5
+ 507  82A8
+ 508  82A8              	;печать дня
+ 509  82A8 E5           	push hl
+ 510  82A9 2A 06 87     	ld hl,(cur_day)
+ 511  82AC CD 7E 84     	call toDecimal
+ 512  82AF 21 D7 84     	ld hl,decimalS+3
+ 513  82B2 CD 71 84     	call print_mes
+ 514  82B5 E1           	pop hl
+ 515  82B6
+ 516  82B6 3E 20        	ld a," "
+ 517  82B8 D7           	rst 16
+ 518  82B9
+ 519  82B9              	;вычисление часа
+ 520  82B9 11 00 00     	ld de,0 ;старшие байты
+ 521  82BC 01 10 0E     	ld bc,3600 ;секунд в часе ;младшие байты
+ 522  82BF              calc_hour
+ 523  82BF D9           	exx
+ 524  82C0 11 00 00     	ld de,0 ;фикс IX подготовить
+ 525  82C3 D9           	exx
+ 526  82C4 A7           	and a
+ 527  82C5 ED 42        	sbc hl,bc ;вычтем час младшие два байта
+ 528  82C7 30 1C        	jr nc,calc_hour3
+ 529  82C9 C5           	push bc
+ 530  82CA E5           	push hl
+ 531  82CB DD E5        	push ix
+ 532  82CD E1           	pop hl
+ 533  82CE 01 01 00     	ld bc,1
+ 534  82D1 D9           	exx
+ 535  82D2 11 01 00     	ld de,1 ;фикс IX запомнить
+ 536  82D5 D9           	exx
+ 537  82D6 A7           	and a
+ 538  82D7 ED 42        	sbc hl,bc
+ 539  82D9 E5           	push hl
+ 540  82DA DD E1        	pop ix
+ 541  82DC E1           	pop hl
+ 542  82DD C1           	pop bc
+ 543  82DE 30 05        	jr nc,calc_hour3
+ 544  82E0 DD 23        	inc ix ;на шаг назад если не хватило
+ 545  82E2 09           	add hl,bc
+ 546  82E3 18 21        	jr calc_hour_ex ;выход из цикла
+ 547  82E5              calc_hour3
+ 548  82E5 A7           	and a
+ 549  82E6 E5           	push hl ;рокировка регистров
+ 550  82E7 DD E5        	push ix
+ 551  82E9 E1           	pop hl
+ 552  82EA ED 52        	sbc hl,de ;вычтем час старшие два байта
+ 553  82EC E5           	push hl
+ 554  82ED DD E1        	pop ix
+ 555  82EF E1           	pop hl
+ 556  82F0 30 09        	jr nc,calc_hour3h
+ 557  82F2              	;на шаг назад
+ 558  82F2 DD 19        	add ix,de
+ 559  82F4 D9           	exx
+ 560  82F5 DD 19        	add ix,de ;фикс IX вспомнить
+ 561  82F7 D9           	exx
+ 562  82F8 09           	add hl,bc
+ 563  82F9 18 0B        	jr calc_hour_ex ;выход из цикла
+ 564  82FB              calc_hour3h
+ 565  82FB              	;прибавляем час к переменной
+ 566  82FB E5           	push hl
+ 567  82FC 2A 08 87     	ld hl,(cur_hour)
+ 568  82FF 23           	inc hl
+ 569  8300 22 08 87     	ld (cur_hour),hl
+ 570  8303 E1           	pop hl
+ 571  8304 18 B9        	jr calc_hour ;цикл
+ 572  8306              calc_hour_ex
+ 573  8306
+ 574  8306              	;печать часа
+ 575  8306 E5           	push hl
+ 576  8307 2A 08 87     	ld hl,(cur_hour)
+ 577  830A CD 7E 84     	call toDecimal
+ 578  830D 21 D7 84     	ld hl,decimalS+3
+ 579  8310 CD 71 84     	call print_mes
+ 580  8313 E1           	pop hl
+ 581  8314
+ 582  8314 3E 3A        	ld a,":"
+ 583  8316 D7           	rst 16
+ 584  8317
+ 585  8317              	;вычисление минут
+ 586  8317 11 00 00     	ld de,0 ;старшие байты
+ 587  831A 01 3C 00     	ld bc,60 ;секунд в минуте ;младшие байты
+ 588  831D              calc_minute
+ 589  831D D9           	exx
+ 590  831E 11 00 00     	ld de,0 ;фикс IX подготовить
+ 591  8321 D9           	exx
+ 592  8322 A7           	and a
+ 593  8323 ED 42        	sbc hl,bc ;вычтем час младшие два байта
+ 594  8325 30 1C        	jr nc,calc_minute3
+ 595  8327 C5           	push bc
+ 596  8328 E5           	push hl
+ 597  8329 DD E5        	push ix
+ 598  832B E1           	pop hl
+ 599  832C 01 01 00     	ld bc,1
+ 600  832F D9           	exx
+ 601  8330 11 01 00     	ld de,1 ;фикс IX запомнить
+ 602  8333 D9           	exx
+ 603  8334 A7           	and a
+ 604  8335 ED 42        	sbc hl,bc
+ 605  8337 E5           	push hl
+ 606  8338 DD E1        	pop ix
+ 607  833A E1           	pop hl
+ 608  833B C1           	pop bc
+ 609  833C 30 05        	jr nc,calc_minute3
+ 610  833E DD 23        	inc ix ;на шаг назад если не хватило
+ 611  8340 09           	add hl,bc
+ 612  8341 18 21        	jr calc_minute_ex ;выход из цикла
+ 613  8343              calc_minute3
+ 614  8343 A7           	and a
+ 615  8344 E5           	push hl ;рокировка регистров
+ 616  8345 DD E5        	push ix
+ 617  8347 E1           	pop hl
+ 618  8348 ED 52        	sbc hl,de ;вычтем минуту старшие два байта
+ 619  834A E5           	push hl
+ 620  834B DD E1        	pop ix
+ 621  834D E1           	pop hl
+ 622  834E 30 09        	jr nc,calc_minute3h
+ 623  8350              	;на шаг назад
+ 624  8350 DD 19        	add ix,de
+ 625  8352 D9           	exx
+ 626  8353 DD 19        	add ix,de ;фикс IX вспомнить
+ 627  8355 D9           	exx
+ 628  8356 09           	add hl,bc
+ 629  8357 18 0B        	jr calc_minute_ex ;выход из цикла
+ 630  8359              calc_minute3h
+ 631  8359              	;прибавляем минуту к переменной
+ 632  8359 E5           	push hl
+ 633  835A 2A 0A 87     	ld hl,(cur_minute)
+ 634  835D 23           	inc hl
+ 635  835E 22 0A 87     	ld (cur_minute),hl
+ 636  8361 E1           	pop hl
+ 637  8362 18 B9        	jr calc_minute ;цикл
+ 638  8364              calc_minute_ex
+ 639  8364
+ 640  8364              	;печать минут
+ 641  8364 E5           	push hl
+ 642  8365 2A 0A 87     	ld hl,(cur_minute)
+ 643  8368 CD 7E 84     	call toDecimal
+ 644  836B 21 D7 84     	ld hl,decimalS+3
+ 645  836E CD 71 84     	call print_mes
+ 646  8371 E1           	pop hl
+ 647  8372
+ 648  8372 3E 3A        	ld a,":"
+ 649  8374 D7           	rst 16
+ 650  8375
+ 651  8375              	;вычисление секунд
+ 652  8375 22 0C 87     	ld (cur_second),hl
+ 653  8378
+ 654  8378              	;печать секунд
+ 655  8378 E5           	push hl
+ 656  8379 2A 0C 87     	ld hl,(cur_second)
+ 657  837C CD 7E 84     	call toDecimal
+ 658  837F 21 D7 84     	ld hl,decimalS+3
+ 659  8382 CD 71 84     	call print_mes
+ 660  8385 E1           	pop hl
+ 661  8386
+ 662  8386 3E 0D        	ld a,13
+ 663  8388 D7           	rst 16
+ 664  8389 C9           	ret
+ 665  838A
+ 666  838A
+ 667  838A              set_client_time ;установка времени клиента
+ 668  838A              	;подготовка текущей даты
+ 669  838A 2A 02 87     	ld hl,(cur_year)
+ 670  838D              	;надо оставить две последние цифры года
+ 671  838D CD 7E 84     	call toDecimal
+ 672  8390 21 D7 84     	ld hl,decimalS+3
+ 673  8393 56           	ld d,(hl)
+ 674  8394 23           	inc hl
+ 675  8395 5E           	ld e,(hl)
+ 676  8396 7A           	ld a,d
+ 677  8397 D6 30        	sub "0"
+ 678  8399 57           	ld d,a
+ 679  839A B7           	or a
+ 680  839B 28 07        	jr z,set_client_year
+ 681  839D AF           	xor a
+ 682  839E              set_client_year1 ;десятки
+ 683  839E C6 0A        	add a,10
+ 684  83A0 15           	dec d
+ 685  83A1 20 FB        	jr nz,set_client_year1
+ 686  83A3 57           	ld d,a
+ 687  83A4              set_client_year
+ 688  83A4 7B           	ld a,e
+ 689  83A5 D6 30        	sub "0" ;единицы
+ 690  83A7 82           	add d
+ 691  83A8 5F           	ld e,a ;год готов
+ 692  83A9
+ 693  83A9 3A 04 87     	ld a,(cur_month)
+ 694  83AC 47           	ld b,a ;месяц
+ 695  83AD 3A 06 87     	ld a,(cur_day)
+ 696  83B0 4F           	ld c,a ;число
+ 697  83B1 CD 6A 85     	call Clock.writeDate
+ 698  83B4 30 08        	jr nc,write_date_ok
+ 699  83B6 21 85 86     	ld hl,mes_no_RTC
+ 700  83B9 CD 71 84     	call print_mes
+ 701  83BC 37           	scf ;ошибка
+ 702  83BD C9           	ret ;выход
+ 703  83BE              write_date_ok
+ 704  83BE
+ 705  83BE              	;установка часов
+ 706  83BE 3A 08 87     	ld a,(cur_hour)
+ 707  83C1 5F           	ld e,a ;часы
+ 708  83C2 3A 0A 87     	ld a,(cur_minute)
+ 709  83C5 47           	ld b,a ;минуты
+ 710  83C6 3A 0C 87     	ld a,(cur_second)
+ 711  83C9 4F           	ld c,a ;секунды
+ 712  83CA CD 6F 85     	call Clock.writeTime
+ 713  83CD 30 08        	jr nc,write_time_ok
+ 714  83CF 21 85 86     	ld hl,mes_no_RTC
+ 715  83D2 CD 71 84     	call print_mes
+ 716  83D5 37           	scf
+ 717  83D6 C9           	ret ;выход
+ 718  83D7              write_time_ok
+ 719  83D7 B7           	or a ;нет ошибки
+ 720  83D8 C9           	ret
+ 721  83D9
+ 722  83D9              print_client_time ;печать времени клиента
+ 723  83D9              	;печать текущей даты
+ 724  83D9 CD 60 85     	call Clock.readDate
+ 725  83DC 30 08        	jr nc,read_date_ok
+ 726  83DE 21 85 86     	ld hl,mes_no_RTC
+ 727  83E1 CD 71 84     	call print_mes
+ 728  83E4 37           	scf ;ошибка
+ 729  83E5 C9           	ret ;выход
+ 730  83E6              read_date_ok
+ 731  83E6 6B           	ld l,e ;год
+ 732  83E7 26 00        	ld h,0
+ 733  83E9 CD 7E 84     	call toDecimal
+ 734  83EC 21 D7 84     	ld hl,decimalS+3
+ 735  83EF CD 71 84     	call print_mes
+ 736  83F2 3E 2E        	ld a,"."
+ 737  83F4 D7           	rst 16
+ 738  83F5 68           	ld l,b ;месяц
+ 739  83F6 26 00        	ld h,0
+ 740  83F8 CD 7E 84     	call toDecimal
+ 741  83FB 21 D7 84     	ld hl,decimalS+3
+ 742  83FE CD 71 84     	call print_mes
+ 743  8401 3E 2E        	ld a,"."
+ 744  8403 D7           	rst 16
+ 745  8404 69           	ld l,c ;число
+ 746  8405 26 00        	ld h,0
+ 747  8407 CD 7E 84     	call toDecimal
+ 748  840A 21 D7 84     	ld hl,decimalS+3
+ 749  840D CD 71 84     	call print_mes
+ 750  8410
+ 751  8410 3E 20        	ld a," "
+ 752  8412 D7           	rst 16
+ 753  8413
+ 754  8413              	;печать текущего времени
+ 755  8413 CD 65 85     	call Clock.readTime
+ 756  8416 30 08        	jr nc,read_time_ok
+ 757  8418 21 85 86     	ld hl,mes_no_RTC
+ 758  841B CD 71 84     	call print_mes
+ 759  841E 37           	scf
+ 760  841F C9           	ret ;выход
+ 761  8420              read_time_ok
+ 762  8420 6B           	ld l,e ;часы
+ 763  8421 26 00        	ld h,0
+ 764  8423 CD 7E 84     	call toDecimal
+ 765  8426 21 D7 84     	ld hl,decimalS+3
+ 766  8429 CD 71 84     	call print_mes
+ 767  842C 3E 3A        	ld a,":"
+ 768  842E D7           	rst 16
+ 769  842F 68           	ld l,b ;минуты
+ 770  8430 26 00        	ld h,0
+ 771  8432 CD 7E 84     	call toDecimal
+ 772  8435 21 D7 84     	ld hl,decimalS+3
+ 773  8438 CD 71 84     	call print_mes
+ 774  843B 3E 3A        	ld a,":"
+ 775  843D D7           	rst 16
+ 776  843E 69           	ld l,c ;секунды
+ 777  843F 26 00        	ld h,0
+ 778  8441 CD 7E 84     	call toDecimal
+ 779  8444 21 D7 84     	ld hl,decimalS+3
+ 780  8447 CD 71 84     	call print_mes
+ 781  844A B7           	or a ;нет ошибки
+ 782  844B C9           	ret
+ 783  844C
+ 784  844C              read_buf	;чтение в буфер
+ 785  844C 01 01 01     	ld bc,257 ;очистить буфер
+ 786  844F 21 00 90     	ld hl,buffer
+ 787  8452 11 01 90     	ld de,buffer+1
+ 788  8455 36 00        	ld (hl),0
+ 789  8457 ED B0        	ldir
+ 790  8459
+ 791  8459 06 00        	ld b,0 ;чтение данных
+ 792  845B 21 00 90     	ld hl,buffer
+ 793  845E              read_buf1
+ 794  845E CD 36 85     	call Uart.read
+ 795  8461 D0           	ret nc
+ 796  8462 77           	ld (hl),a
+ 797  8463 23           	inc hl
+ 798  8464 10 F8        	djnz read_buf1
+ 799  8466 C9           	ret
+ 800  8467
+ 801  8467              write_cmd ;отправить данные
+ 802  8467              	;ld hl,buffer
+ 803  8467              	;ld b,0
+ 804  8467              write_cmd1
+ 805  8467 7E           	ld a,(hl)
+ 806  8468 C5           	push bc
+ 807  8469 CD 4F 85     	call Uart.write
+ 808  846C C1           	pop bc
+ 809  846D 23           	inc hl
+ 810  846E 10 F7        	djnz write_cmd1
+ 811  8470 C9           	ret
+ 812  8471
+ 813  8471              print_mes ; печать строки до цифры 0. В hl адрес строки
+ 814  8471 C5           	push bc
+ 815  8472 06 00        	ld b,0 ;не больше 256
+ 816  8474              print_mes1
+ 817  8474 7E           	ld a,(hl)
+ 818  8475 B7           	or a
+ 819  8476 28 04        	jr z,print_mes_e
+ 820  8478 D7           	rst 16
+ 821  8479 23           	inc hl
+ 822  847A 10 F8        	djnz print_mes1
+ 823  847C              print_mes_e
+ 824  847C C1           	pop bc
+ 825  847D C9           	ret
+ 826  847E
+ 827  847E              toDecimal		;конвертирует 2 байта в 5 десятичных цифр
+ 828  847E              				;на входе в HL число
+ 829  847E 11 10 27     			ld de,10000 ;десятки тысяч
+ 830  8481 3E FF        			ld a,255
+ 831  8483              toDecimal10k
+ 832  8483 A7           			and a
+ 833  8484 ED 52        			sbc hl,de
+ 834  8486 3C           			inc a
+ 835  8487 30 FA        			jr nc,toDecimal10k
+ 836  8489 19           			add hl,de
+ 837  848A C6 30        			add a,48
+ 838  848C 32 D4 84     			ld (decimalS),a
+ 839  848F 11 E8 03     			ld de,1000 ;тысячи
+ 840  8492 3E FF        			ld a,255
+ 841  8494              toDecimal1k
+ 842  8494 A7           			and a
+ 843  8495 ED 52        			sbc hl,de
+ 844  8497 3C           			inc a
+ 845  8498 30 FA        			jr nc,toDecimal1k
+ 846  849A 19           			add hl,de
+ 847  849B C6 30        			add a,48
+ 848  849D 32 D5 84     			ld (decimalS+1),a
+ 849  84A0 11 64 00     			ld de,100 ;сотни
+ 850  84A3 3E FF        			ld a,255
+ 851  84A5              toDecimal01k
+ 852  84A5 A7           			and a
+ 853  84A6 ED 52        			sbc hl,de
+ 854  84A8 3C           			inc a
+ 855  84A9 30 FA        			jr nc,toDecimal01k
+ 856  84AB 19           			add hl,de
+ 857  84AC C6 30        			add a,48
+ 858  84AE 32 D6 84     			ld (decimalS+2),a
+ 859  84B1 11 0A 00     			ld de,10 ;десятки
+ 860  84B4 3E FF        			ld a,255
+ 861  84B6              toDecimal001k
+ 862  84B6 A7           			and a
+ 863  84B7 ED 52        			sbc hl,de
+ 864  84B9 3C           			inc a
+ 865  84BA 30 FA        			jr nc,toDecimal001k
+ 866  84BC 19           			add hl,de
+ 867  84BD C6 30        			add a,48
+ 868  84BF 32 D7 84     			ld (decimalS+3),a
+ 869  84C2 11 01 00     			ld de,1 ;единицы
+ 870  84C5 3E FF        			ld a,255
+ 871  84C7              toDecimal0001k
+ 872  84C7 A7           			and a
+ 873  84C8 ED 52        			sbc hl,de
+ 874  84CA 3C           			inc a
+ 875  84CB 30 FA        			jr nc,toDecimal0001k
+ 876  84CD 19           			add hl,de
+ 877  84CE C6 30        			add a,48
+ 878  84D0 32 D8 84     			ld (decimalS+4),a
+ 879  84D3
+ 880  84D3 C9           			ret
+ 881  84D4
+ 882  84D4 00 00 00...  decimalS	ds 6 ;десятичные цифры
+ 883  84DA
+ 884  84DA              check_year_leap ;проверка не високосный ли год, на выходе флаг C=1 если да
+ 885  84DA ED 4B 02 87  	ld bc,(cur_year)
+ 886  84DE 21 64 87     	ld hl,year_leap
+ 887  84E1              check_year_leap3
+ 888  84E1 7E           	ld a,(hl)
+ 889  84E2 B7           	or a
+ 890  84E3 28 0E        	jr z,check_year_leap_no ;конец таблицы, не нашли
+ 891  84E5 B9           	cp c
+ 892  84E6 20 07        	jr nz,check_year_leap2
+ 893  84E8 23           	inc hl
+ 894  84E9 7E           	ld a,(hl)
+ 895  84EA B8           	cp b
+ 896  84EB 20 03        	jr nz,check_year_leap1
+ 897  84ED 37           	scf ;нашли, значит високосный
+ 898  84EE C9           	ret
+ 899  84EF
+ 900  84EF              check_year_leap2
+ 901  84EF 23           	inc hl
+ 902  84F0              check_year_leap1
+ 903  84F0 23           	inc hl
+ 904  84F1 18 EE        	jr check_year_leap3
+ 905  84F3
+ 906  84F3
+ 907  84F3              check_year_leap_no ;не високосный
+ 908  84F3 B7           	or a
+ 909  84F4 C9           	ret
+ 910  84F5
+ 911  84F5
+ 912  84F5              	include drivers/zx-wifi.asm
+# file opened: drivers/zx-wifi.asm
+   1+ 84F5              ; This driver works with 16c550 uart that's support AFE
+   2+ 84F5                  module Uart
+   3+ 84F5              ; Make init shorter and readable:-)
+   4+ 84F5                  macro outp port, value
+   5+ 84F5 ~            	ld b, port
+   6+ 84F5 ~            	ld c, #EF
+   7+ 84F5 ~                ld a, value
+   8+ 84F5 ~                out (c), a
+   9+ 84F5                  endm
+  10+ 84F5
+  11+ 84F5              ; Internal port constants
+  12+ 84F5              RBR_THR = #F8
+  13+ 84F5              IER     = RBR_THR + 1
+  14+ 84F5              IIR_FCR = RBR_THR + 2
+  15+ 84F5              LCR     = RBR_THR + 3
+  16+ 84F5              MCR     = RBR_THR + 4
+  17+ 84F5              LSR     = RBR_THR + 5
+  18+ 84F5              MSR     = RBR_THR + 6
+  19+ 84F5              SR      = RBR_THR + 7
+  20+ 84F5
+  21+ 84F5              init:
+  22+ 84F5                  outp MCR,     #0d  // Assert RTS
+  22+ 84F5 06 FC       >	ld b, MCR
+  22+ 84F7 0E EF       >	ld c, #EF
+  22+ 84F9 3E 0D       >    ld a, #0d
+  22+ 84FB ED 79       >    out (c), a
+  23+ 84FD                  outp IIR_FCR, #87  // Enable fifo 8 level, and clear it
+  23+ 84FD 06 FA       >	ld b, IIR_FCR
+  23+ 84FF 0E EF       >	ld c, #EF
+  23+ 8501 3E 87       >    ld a, #87
+  23+ 8503 ED 79       >    out (c), a
+  24+ 8505                  outp LCR,     #83  // 8n1, DLAB=1
+  24+ 8505 06 FB       >	ld b, LCR
+  24+ 8507 0E EF       >	ld c, #EF
+  24+ 8509 3E 83       >    ld a, #83
+  24+ 850B ED 79       >    out (c), a
+  25+ 850D                  outp RBR_THR, #01  // 115200 (divider 1)
+  25+ 850D 06 F8       >	ld b, RBR_THR
+  25+ 850F 0E EF       >	ld c, #EF
+  25+ 8511 3E 01       >    ld a, #01
+  25+ 8513 ED 79       >    out (c), a
+  26+ 8515                  outp IER,     #00  // (divider 0). Divider is 16 bit, so we get (#0002 divider)
+  26+ 8515 06 F9       >	ld b, IER
+  26+ 8517 0E EF       >	ld c, #EF
+  26+ 8519 3E 00       >    ld a, #00
+  26+ 851B ED 79       >    out (c), a
+  27+ 851D
+  28+ 851D                  outp LCR,     #03 // 8n1, DLAB=0
+  28+ 851D 06 FB       >	ld b, LCR
+  28+ 851F 0E EF       >	ld c, #EF
+  28+ 8521 3E 03       >    ld a, #03
+  28+ 8523 ED 79       >    out (c), a
+  29+ 8525                  outp IER,     #00 // Disable int
+  29+ 8525 06 F9       >	ld b, IER
+  29+ 8527 0E EF       >	ld c, #EF
+  29+ 8529 3E 00       >    ld a, #00
+  29+ 852B ED 79       >    out (c), a
+  30+ 852D                  outp MCR,     #2f // Enable AFE
+  30+ 852D 06 FC       >	ld b, MCR
+  30+ 852F 0E EF       >	ld c, #EF
+  30+ 8531 3E 2F       >    ld a, #2f
+  30+ 8533 ED 79       >    out (c), a
+  31+ 8535 C9               ret
+  32+ 8536
+  33+ 8536              retry_rec_count_max equ 50 ;ждать 1 байт максимум столько прерываний
+  34+ 8536
+  35+ 8536              ; Flag C <- Data available
+  36+ 8536              ; isAvailable:
+  37+ 8536                  ; ld a, LSR
+  38+ 8536                  ; in a, (#EF)
+  39+ 8536                  ; rrca
+  40+ 8536                  ; ret
+  41+ 8536
+  42+ 8536              ; Non-blocking read
+  43+ 8536              ; Flag C <- is byte was readen
+  44+ 8536              ; A <- byte
+  45+ 8536              ; read1:
+  46+ 8536                  ; ld a, LSR
+  47+ 8536                  ; in a, (#EF)
+  48+ 8536                  ; rrca
+  49+ 8536                  ; ret nc
+  50+ 8536                  ; ld a, RBR_THR
+  51+ 8536                  ; in a, (#EF)
+  52+ 8536                  ; scf
+  53+ 8536                  ; ret
+  54+ 8536
+  55+ 8536              ; Tries read byte with timeout
+  56+ 8536              ; Flag C <- is byte read
+  57+ 8536              ; A <- byte
+  58+ 8536              read:
+  59+ 8536 AF           	xor a ;4
+  60+ 8537 32 78 5C     	ld (#5C78),a ;обнулить счётчик ожидания ;13
+  61+ 853A              .wait
+  62+ 853A 3E FD            ld a, LSR
+  63+ 853C DB EF            in a, (#EF)
+  64+ 853E 0F               rrca
+  65+ 853F 30 05        	jr nc, .readW
+  66+ 8541 3E F8            ld a, RBR_THR
+  67+ 8543 DB EF            in a, (#EF)
+  68+ 8545 C9           	ret
+  69+ 8546              .readW
+  70+ 8546 3A 78 5C     	ld a,(#5C78)
+  71+ 8549 FE 32        	cp retry_rec_count_max
+  72+ 854B 38 ED        	jr c, .wait ;ещё попытка
+  73+ 854D AF           	xor a ;выключим флаг переноса если время вышло
+  74+ 854E C9           	ret
+  75+ 854F
+  76+ 854F
+  77+ 854F
+  78+ 854F
+  79+ 854F              ; Blocking read
+  80+ 854F              ; A <- Byte
+  81+ 854F              ; readB:
+  82+ 854F                  ; ld a, LSR
+  83+ 854F                  ; in a, (#EF)
+  84+ 854F                  ; rrca
+  85+ 854F                  ; jr nc, readB
+  86+ 854F              	; ld a, RBR_THR
+  87+ 854F                  ; in a, (#EF)
+  88+ 854F                  ; ret
+  89+ 854F
+  90+ 854F              ; A -> byte to send
+  91+ 854F              write:
+  92+ 854F F5               push af
+  93+ 8550              .wait
+  94+ 8550 3E FD        	ld a, LSR
+  95+ 8552 DB EF            in a, (#EF)
+  96+ 8554 E6 20            and #20
+  97+ 8556 28 F8            jr z, .wait
+  98+ 8558 F1               pop af
+  99+ 8559 06 F8        	ld b, RBR_THR
+ 100+ 855B 0E EF        	ld c, #EF
+ 101+ 855D ED 79            out (c), a
+ 102+ 855F C9               ret
+ 103+ 8560
+ 104+ 8560                  endmodule
+# file closed: drivers/zx-wifi.asm
+ 913  8560              	include drivers/SMUC-RTS.asm
+# file opened: drivers/SMUC-RTS.asm
+   1+ 8560              ;clock driver SMUC
+   2+ 8560              	module Clock
+   3+ 8560              ; вх.:	D — код операции:
+   4+ 8560              		; 7 — записать (1)/ считать (0) значение времени и/или даты;
+   5+ 8560              		; 6 — считать в буфер (только, если бит 7 = 0, см. также бит 5);
+   6+ 8560              		; 5 — формат считывания — (1) прямое считывание; (0) считывание в формате ASCIZ;
+   7+ 8560              		; 0 — работать с датой (1), или со временем (0);
+   8+ 8560              	; HL — адрес буфера (если бит 6 = 1);
+   9+ 8560              	; C — секунды/число;
+  10+ 8560              	; B — минуты/месяц;
+  11+ 8560              	; E — часы/год.
+  12+ 8560              ; вых.:	CY=1, если микросхемы CMOS нет или задан неверный формат запроса;
+  13+ 8560              	; (HL) — строка текста ASCIZ (если бит 6 = 1);
+  14+ 8560              	; C — секунды/число;
+  15+ 8560              	; B - минуты/месяц;
+  16+ 8560              	; E - часы/год;
+  17+ 8560              	; L - день недели.
+  18+ 8560              ; Функция доступна, начиная с версии 3.1f (код 70 от 21.05.95).
+  19+ 8560
+  20+ 8560              readDate
+  21+ 8560 16 21        	ld   d,%00100001 ;
+  22+ 8562 CF               rst  8
+  23+ 8563 89               db #89
+  24+ 8564 C9               ret
+  25+ 8565
+  26+ 8565              readTime
+  27+ 8565 16 20        	ld   d,%00100000 ;
+  28+ 8567 CF               rst  8
+  29+ 8568 89               db #89
+  30+ 8569 C9               ret
+  31+ 856A
+  32+ 856A              writeDate
+  33+ 856A 16 A1        	ld   d,%10100001 ;
+  34+ 856C CF               rst  8
+  35+ 856D 89               db #89
+  36+ 856E C9               ret
+  37+ 856F
+  38+ 856F              writeTime
+  39+ 856F 16 A0        	ld   d,%10100000 ;
+  40+ 8571 CF               rst  8
+  41+ 8572 89               db #89
+  42+ 8573 C9               ret
+  43+ 8574
+  44+ 8574
+  45+ 8574                  endmodule
+# file closed: drivers/SMUC-RTS.asm
+ 914  8574
+ 915  8574 41 54 45 30  cmd_ate0 db "ATE0",13,10
+ 915  8578 0D 0A
+ 916  857A              cmd_ate0_e
+ 917  857A 41 54 2B 43  cmd_cwjap db "AT+CWJAP_DEF=\"ТочкаДоступа\",\"Парол\"",13,10
+ 917  857E 57 4A 41 50
+ 917  8582 5F 44 45 46
+ 917  8586 3D 22 D0 A2
+ 917  858A D0 BE D1 87
+ 917  858E D0 BA D0 B0
+ 917  8592 D0 94 D0 BE
+ 917  8596 D1 81 D1 82
+ 917  859A D1 83 D0 BF
+ 917  859E D0 B0 22 2C
+ 917  85A2 22 D0 9F D0
+ 917  85A6 B0 D1 80 D0
+ 917  85AA BE D0 BB 22
+ 917  85AE 0D 0A
+ 918  85B0              cmd_cwjap_e
+ 919  85B0 2B 2B 2B     cmd_break db "+++"
+ 920  85B3              cmd_break_e
+ 921  85B3 41 54 2B 43  cmd_ipmux db "AT+CIPMUX=0",13,10
+ 921  85B7 49 50 4D 55
+ 921  85BB 58 3D 30 0D
+ 921  85BF 0A
+ 922  85C0              cmd_ipmux_e
+ 923  85C0 41 54 2B 43  cmd_ipclose db "AT+CIPCLOSE",13,10
+ 923  85C4 49 50 43 4C
+ 923  85C8 4F 53 45 0D
+ 923  85CC 0A
+ 924  85CD              cmd_ipclose_e
+ 925  85CD 41 54 2B 43  cmd_ipstart db "AT+CIPSTART=\"UDP\",\"time.windows.com\",123",13,10
+ 925  85D1 49 50 53 54
+ 925  85D5 41 52 54 3D
+ 925  85D9 22 55 44 50
+ 925  85DD 22 2C 22 74
+ 925  85E1 69 6D 65 2E
+ 925  85E5 77 69 6E 64
+ 925  85E9 6F 77 73 2E
+ 925  85ED 63 6F 6D 22
+ 925  85F1 2C 31 32 33
+ 925  85F5 0D 0A
+ 926  85F7              ;cmd_ipstart db "AT+CIPSTART=\"UDP\",\"time.windows.com\",2390",13,10
+ 927  85F7              cmd_ipstart_e
+ 928  85F7              ;cmd_ipsend db "AT+CIPSEND=48,\"time.windows.com\",123",13,10
+ 929  85F7 41 54 2B 43  cmd_ipsend db "AT+CIPSEND=48",13,10
+ 929  85FB 49 50 53 45
+ 929  85FF 4E 44 3D 34
+ 929  8603 38 0D 0A
+ 930  8606              cmd_ipsend_e
+ 931  8606 41 54 2B 53  cmd_savetrans db "AT+SAVETRANSLINK=1,\"time.windows.com\",123,\"UDP\"",13,10
+ 931  860A 41 56 45 54
+ 931  860E 52 41 4E 53
+ 931  8612 4C 49 4E 4B
+ 931  8616 3D 31 2C 22
+ 931  861A 74 69 6D 65
+ 931  861E 2E 77 69 6E
+ 931  8622 64 6F 77 73
+ 931  8626 2E 63 6F 6D
+ 931  862A 22 2C 31 32
+ 931  862E 33 2C 22 55
+ 931  8632 44 50 22 0D
+ 931  8636 0A
+ 932  8637              cmd_savetrans_e
+ 933  8637 41 54 2B 53  cmd_savetrans0 db "AT+SAVETRANSLINK=0",13,10
+ 933  863B 41 56 45 54
+ 933  863F 52 41 4E 53
+ 933  8643 4C 49 4E 4B
+ 933  8647 3D 30 0D 0A
+ 934  864B              cmd_savetrans0_e
+ 935  864B              ; cmd_req db 0x11,0xfa,0x00,0x00,0x00,0x00,0x00,0x01,0x03,0xfe
+ 936  864B              	; ds 48-10
+ 937  864B              cmd_req
+ 938  864B              	;db 0b00010011
+ 939  864B              	;db 0b01101000
+ 940  864B              	;db 0b11100011
+ 941  864B 1B           	db 0b00011011 ;Leap indicator = 0 (00); Version number=3 (011); Mode=3 (011)(клиент)
+ 942  864C 00           	ds 1
+ 943  864D 00           	ds 1
+ 944  864E 00           	ds 1
+ 945  864F 00 00 00 00   	ds 4
+ 946  8653 00 00 00 00  	ds 4
+ 947  8657 00 00 00 00   	ds 4
+ 948  865B 00 00 00...  	ds 8 ;Reference время на сервере
+ 949  8663 00 00 00...  	ds 8 ;Originate
+ 950  866B 00 00 00...   	ds 8 ;Receive
+ 951  8673 E7 AB B7 00  	db #E7,#AB,#B7,#00 ;Transmit текущее время клиента (количество секунд с 1 января 1900 г, для примера забита дата 02.03.2023)
+ 952  8677 00 00 00 00  	ds 4
+ 953  867B              cmd_req_e
+ 954  867B
+ 955  867B 2B 49 50 44  pack_id db "+IPD,48:" ;метка пакета от сервера
+ 955  867F 2C 34 38 3A
+ 956  8683              pack_id_e
+ 957  8683 00 00        pack_answer dw 0 ;указатель на начало полученного пакета
+ 958  8685 0D 10 02 46  mes_no_RTC db 13,#10,2,"Fail. RTC error.",0
+ 958  8689 61 69 6C 2E
+ 958  868D 20 52 54 43
+ 958  8691 20 65 72 72
+ 958  8695 6F 72 2E 00
+ 959  8699 0D 10 02 46  mes_no_answer db 13,#10,2,"Fail. Server answer error.",0
+ 959  869D 61 69 6C 2E
+ 959  86A1 20 53 65 72
+ 959  86A5 76 65 72 20
+ 959  86A9 61 6E 73 77
+ 959  86AD 65 72 20 65
+ 959  86B1 72 72 6F 72
+ 959  86B5 2E 00
+ 960  86B7 0D 43 6C 69  mes_client_RTS db 13,"Client time: ",0
+ 960  86BB 65 6E 74 20
+ 960  86BF 74 69 6D 65
+ 960  86C3 3A 20 00
+ 961  86C6 0D 53 65 72  mes_server_RTS db 13,"Server time: ",0
+ 961  86CA 76 65 72 20
+ 961  86CE 74 69 6D 65
+ 961  86D2 3A 20 00
+ 962  86D5 16 15 01 10  mes_curent_RTS 	db #16,21,1,#10,4,"Current time: ",0
+ 962  86D9 04 43 75 72
+ 962  86DD 72 65 6E 74
+ 962  86E1 20 74 69 6D
+ 962  86E5 65 3A 20 00
+ 963  86E9 10 04 0D 50  mes_press_key	db #10,4,13,"Press key to reset.",13,13,0
+ 963  86ED 72 65 73 73
+ 963  86F1 20 6B 65 79
+ 963  86F5 20 74 6F 20
+ 963  86F9 72 65 73 65
+ 963  86FD 74 2E 0D 0D
+ 963  8701 00
+ 964  8702
+ 965  8702
+ 966  8702
+ 967  8702 6C 07        cur_year dw 1900 ;текущая дата для рассчётов
+ 968  8704 01 00        cur_month dw 01
+ 969  8706 01 00        cur_day dw 01
+ 970  8708 00 00        cur_hour dw 0
+ 971  870A 00 00        cur_minute dw 0
+ 972  870C 00 00        cur_second dw 0
+ 973  870E E1 01        year_h dw #1E1 ;секунд в году
+ 974  8710 80 33        year_l dw #3380
+ 975  8712 E2 01        year_leap_h dw #1E2 ;секунд в високосном году
+ 976  8714 00 85        year_leap_l dw #8500
+ 977  8716              ;server_t_h dw 0 ;полученное с сервера время
+ 978  8716              ;server_t_l dw 0
+ 979  8716 01 00        day_h dw #0001 ;секунд в дне
+ 980  8718 80 51        day_l dw #5180
+ 981  871A 00 00        month_cur_tabl dw 0; указатель на месяц
+ 982  871C
+ 983  871C              ;список месяцев в секундах
+ 984  871C              ;31,28,31,30,31,30,31,31,30,31,30,31
+ 985  871C 28 DE 80     month db #28,#DE,#80 ;31
+ 986  871F 24 EA 00     	db #24,#EA,#00 ;28
+ 987  8722 28 DE 80     	db #28,#DE,#80 ;31
+ 988  8725 27 8D 00     	db #27,#8D,#00 ;30
+ 989  8728 28 DE 80     	db #28,#DE,#80 ;31
+ 990  872B 27 8D 00     	db #27,#8D,#00 ;30
+ 991  872E 28 DE 80     	db #28,#DE,#80 ;31
+ 992  8731 28 DE 80     	db #28,#DE,#80 ;31
+ 993  8734 27 8D 00     	db #27,#8D,#00 ;30
+ 994  8737 28 DE 80     	db #28,#DE,#80 ;31
+ 995  873A 27 8D 00     	db #27,#8D,#00 ;30
+ 996  873D 28 DE 80     	db #28,#DE,#80 ;31
+ 997  8740
+ 998  8740              ;31,29,31,30,31,30,31,31,30,31,30,31
+ 999  8740 28 DE 80     month_leap  db #28,#DE,#80 ;31
+1000  8743 26 3B 80     	db #26,#3B,#80 ;29
+1001  8746 28 DE 80     	db #28,#DE,#80 ;31
+1002  8749 27 8D 00     	db #27,#8D,#00 ;30
+1003  874C 28 DE 80     	db #28,#DE,#80 ;31
+1004  874F 27 8D 00     	db #27,#8D,#00 ;30
+1005  8752 28 DE 80     	db #28,#DE,#80 ;31
+1006  8755 28 DE 80     	db #28,#DE,#80 ;31
+1007  8758 27 8D 00     	db #27,#8D,#00 ;30
+1008  875B 28 DE 80     	db #28,#DE,#80 ;31
+1009  875E 27 8D 00     	db #27,#8D,#00 ;30
+1010  8761 28 DE 80     	db #28,#DE,#80 ;31
+1011  8764
+1012  8764              ;високосные годы
+1013  8764 70 07 74 07  year_leap dw 1904, 1908, 1912, 1916, 1920, 1924, 1928, 1932, 1936, 1940, 1944, 1948, 1952, 1956, 1960, 1964, 1968, 1972, 1976, 1980, 1984, 1988, 1992, 1996, 2000, 2004, 2008, 2012, 2016, 2020, 2024, 2028, 2032,2036, 2040, 2044, 2048, 2052, 2056, 2060, 2064, 2068, 2072, 2080, 2084, 2088, 2092, 2096, 2104, 2108, 2112, 2116, 2120, 2124, 2128, 2132,0 ;
+1013  8768 78 07 7C 07
+1013  876C 80 07 84 07
+1013  8770 88 07 8C 07
+1013  8774 90 07 94 07
+1013  8778 98 07 9C 07
+1013  877C A0 07 A4 07
+1013  8780 A8 07 AC 07
+1013  8784 B0 07 B4 07
+1013  8788 B8 07 BC 07
+1013  878C C0 07 C4 07
+1013  8790 C8 07 CC 07
+1013  8794 D0 07 D4 07
+1013  8798 D8 07 DC 07
+1013  879C E0 07 E4 07
+1013  87A0 E8 07 EC 07
+1013  87A4 F0 07 F4 07
+1013  87A8 F8 07 FC 07
+1013  87AC 00 08 04 08
+1013  87B0 08 08 0C 08
+1013  87B4 10 08 14 08
+1013  87B8 18 08 20 08
+1013  87BC 24 08 28 08
+1013  87C0 2C 08 30 08
+1013  87C4 38 08 3C 08
+1013  87C8 40 08 44 08
+1013  87CC 48 08 4C 08
+1013  87D0 50 08 54 08
+1013  87D4 00 00
+1014  87D6
+1015  87D6                  SAVETRD "NETTIME.TRD",|"nettime.C",origin, $ - origin
+1016  87D6
+1017  87D6 00 00 00...  	align #1000
+1018  9000              buffer
+# file closed: main.asm
